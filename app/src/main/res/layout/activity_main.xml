@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="@drawable/gradient_background"
+    tools:context=".MainActivity">
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🎙️ 录音机"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_marginBottom="32dp" />
+
+    <!-- 状态显示 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/status_background"
+        android:padding="24dp"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="准备录音"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_color" />
+
+        <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_color"
+            android:layout_marginTop="16dp"
+            android:visibility="invisible" />
+
+        <TextView
+            android:id="@+id/tvFileInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="@color/gray"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+
+    <!-- 波形动画区域 -->
+    <com.example.audiorecorder.WaveformView
+        android:id="@+id/waveformView"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_marginBottom="32dp" />
+
+    <!-- 控制按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
+
+        <!-- 录音按钮 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="32dp">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnRecord"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_record"
+                app:backgroundTint="@color/record_color"
+                app:tint="@color/white"
+                app:elevation="8dp"
+                app:fabCustomSize="80dp"
+                app:maxImageSize="40dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="录音"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+
+        <!-- 停止按钮 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="32dp">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnStop"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_stop"
+                app:backgroundTint="@color/stop_color"
+                app:tint="@color/white"
+                app:elevation="8dp"
+                app:fabCustomSize="64dp"
+                app:maxImageSize="32dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="停止"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+
+        <!-- 播放按钮 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnPlay"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_play"
+                app:backgroundTint="@color/play_color"
+                app:tint="@color/white"
+                app:elevation="8dp"
+                app:fabCustomSize="64dp"
+                app:maxImageSize="32dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="播放"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 录音列表按钮 -->
+    <Button
+        android:id="@+id/btnRecordings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📂 查看录音列表"
+        android:textSize="16sp"
+        android:textColor="@color/white"
+        android:background="@drawable/button_background"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:layout_marginTop="32dp" />
+
+</LinearLayout>
