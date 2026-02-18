@@ -27,13 +27,9 @@ jobs:
 
     - name: Build Debug APK
       run: |
-        if [ -f "./gradlew" ]; then
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace
-        else
-          echo "ERROR: gradlew not found!"
-          exit 1
-        fi
+        # Use gradle directly since gradlew might not exist
+        gradle wrapper --gradle-version 8.2
+        ./gradlew assembleDebug
 
     - name: Check APK exists
       run: |
