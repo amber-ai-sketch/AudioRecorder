@@ -24,11 +24,18 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.2'
 
-    - name: Build Debug APK
-      run: gradle assembleDebug
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build Debug APK with Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        arguments: assembleDebug
+
+    - name: Check APK exists
+      run: |
+        ls -la app/build/outputs/apk/debug/
 
     - name: Upload APK as artifact
       uses: actions/upload-artifact@v4
