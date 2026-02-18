@@ -133,10 +133,10 @@ cygwin=false
 msys=false
 darwin=false
 nonstop=false
-case "$( uname )" in                #( 
-  CYGWIN* )         cygwin=true  ;;  #( 
-  MSYS* | MINGW* )  msys=true    ;;  #( 
-  DARWIN* )         darwin=true  ;;  #( 
+case "$( uname )" in                #(
+  CYGWIN* )         cygwin=true  ;;  #(
+  MSYS* | MINGW* )  msys=true    ;;  #(
+  DARWIN* )         darwin=true  ;;  #(
   NONSTOP* )        nonstop=true ;;
 esac
 
