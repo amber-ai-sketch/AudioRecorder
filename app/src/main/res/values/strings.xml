@@ -1,15 +1,17 @@
 <resources>
-    <string name="app_name">录音机</string>
+    <string name="app_name">高级录音机</string>
+    <string name="record_title">🎙️ 录音机</string>
     <string name="record">录音</string>
     <string name="stop">停止</string>
     <string name="play">播放</string>
-    <string name="recording">正在录音...</string>
-    <string name="playing">正在播放...</string>
-    <string name="ready">准备录音</string>
-    <string name="permission_denied">需要录音和存储权限</string>
+    <string name="recording">🔴 正在录音...</string>
+    <string name="playing">▶️ 正在播放...</string>
+    <string name="ready">准备就绪</string>
+    <string name="permission_denied">权限被拒绝，无法录音</string>
     <string name="recording_saved">录音已保存</string>
-    <string name="recording_failed">录音失败</string>
-    <string name="no_recording">没有可播放的录音</string>
-    <string name="play_failed">播放失败</string>
-    <string name="file_saved">文件已保存到</string>
+    <string name="recording_failed">录音启动失败</string>
+    <string name="no_recording">没有找到录音文件</string>
+    <string name="play_failed">无法播放此文件</string>
+    <string name="view_recordings">📂 查看录音列表</string>
+    <string name="recent_file">最近录音: %1$s</string>
 </resources>

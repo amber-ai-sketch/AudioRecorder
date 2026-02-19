@@ -4,108 +4,177 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.widget.Button
-import android.widget.TextView
+import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.audiorecorder.databinding.ActivityMainBinding
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
+    private val viewModel: MainViewModel by viewModels()
+
     private var mediaRecorder: MediaRecorder? = null
     private var mediaPlayer: MediaPlayer? = null
-    private var isRecording = false
-    private var isPlaying = false
     private var outputFile: String = ""
-    
-    private lateinit var btnRecord: Button
-    private lateinit var btnStop: Button
-    private lateinit var btnPlay: Button
-    private lateinit var tvStatus: TextView
-    private lateinit var tvFileInfo: TextView
+    private var amplitudeJob: Job? = null
 
-    companion object {
-        private const val REQUEST_PERMISSION_CODE = 100
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            setupUI()
+        } else {
+            Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        initViews()
-        checkPermissions()
+        checkAndRequestPermissions()
+        setupUI()
+        observeViewModel()
     }
 
-    private fun initViews() {
-        btnRecord = findViewById(R.id.btnRecord)
-        btnStop = findViewById(R.id.btnStop)
-        btnPlay = findViewById(R.id.btnPlay)
-        tvStatus = findViewById(R.id.tvStatus)
-        tvFileInfo = findViewById(R.id.tvFileInfo)
+    private fun checkAndRequestPermissions() {
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+        } else {
+            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
 
-        btnRecord.setOnClickListener { startRecording() }
-        btnStop.setOnClickListener { stopRecording() }
-        btnPlay.setOnClickListener { playRecording() }
-
-        updateUI()
-    }
-
-    private fun checkPermissions() {
-        val permissions = arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
-
-        val needPermissions = permissions.filter {
+        val notGranted = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
 
-        if (needPermissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, needPermissions.toTypedArray(), REQUEST_PERMISSION_CODE)
+        if (notGranted.isNotEmpty()) {
+            requestPermissionLauncher.launch(notGranted.toTypedArray())
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_PERMISSION_CODE) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Toast.makeText(this, "权限已获取", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "需要权限才能录音", Toast.LENGTH_LONG).show()
+    private fun setupUI() {
+        binding.btnRecord.setOnClickListener { startRecording() }
+        binding.btnStop.setOnClickListener { 
+            if (viewModel.isRecording.value) stopRecording() 
+            else if (viewModel.isPlaying.value) stopPlaying()
+        }
+        binding.btnPlay.setOnClickListener { playRecording() }
+        binding.btnRecordings.setOnClickListener {
+            Toast.makeText(this, "录音列表功能即将上线", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.timerText.collect { time ->
+                        binding.tvTimer.text = time
+                    }
+                }
+                launch {
+                    viewModel.isRecording.collect { isRecording ->
+                        updateUIState(isRecording, viewModel.isPlaying.value)
+                    }
+                }
+                launch {
+                    viewModel.isPlaying.collect { isPlaying ->
+                        updateUIState(viewModel.isRecording.value, isPlaying)
+                    }
+                }
+                launch {
+                    viewModel.amplitude.collect { amp ->
+                        binding.waveformView.addAmplitude(amp)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateUIState(isRecording: Boolean, isPlaying: Boolean) {
+        with(binding) {
+            when {
+                isRecording -> {
+                    tvStatus.text = getString(R.string.recording)
+                    tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_red_dark))
+                    tvTimer.visibility = View.VISIBLE
+                    waveformView.visibility = View.VISIBLE
+                    btnRecord.isEnabled = false
+                    btnStop.isEnabled = true
+                    btnPlay.isEnabled = false
+                    btnRecord.animate().scaleX(1.2f).scaleY(1.2f).setDuration(500).start()
+                }
+                isPlaying -> {
+                    tvStatus.text = getString(R.string.playing)
+                    tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_green_dark))
+                    tvTimer.visibility = View.INVISIBLE
+                    waveformView.visibility = View.GONE
+                    btnRecord.isEnabled = false
+                    btnStop.isEnabled = true
+                    btnPlay.isEnabled = true
+                    btnPlay.setImageResource(R.drawable.ic_pause)
+                    btnRecord.scaleX = 1.0f
+                    btnRecord.scaleY = 1.0f
+                }
+                else -> {
+                    tvStatus.text = getString(R.string.ready)
+                    tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary_color))
+                    tvTimer.visibility = View.INVISIBLE
+                    waveformView.visibility = View.GONE
+                    waveformView.clear()
+                    btnRecord.isEnabled = true
+                    btnStop.isEnabled = false
+                    btnPlay.isEnabled = outputFile.isNotEmpty() && File(outputFile).exists()
+                    btnPlay.setImageResource(R.drawable.ic_play)
+                    btnRecord.scaleX = 1.0f
+                    btnRecord.scaleY = 1.0f
+                }
+            }
+
+            if (outputFile.isNotEmpty() && File(outputFile).exists()) {
+                tvFileInfo.text = getString(R.string.recent_file, File(outputFile).name)
             }
         }
     }
 
     private fun startRecording() {
-        if (isRecording) return
-
         try {
-            // 停止播放
             stopPlaying()
-
-            // 创建录音文件
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "REC_$timeStamp.mp3"
             
-            // 使用应用私有目录
             val directory = File(getExternalFilesDir(null), "Recordings")
-            if (!directory.exists()) {
-                directory.mkdirs()
-            }
+            if (!directory.exists()) directory.mkdirs()
             
-            val file = File(directory, fileName)
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val file = File(directory, "REC_$timeStamp.mp3")
             outputFile = file.absolutePath
 
-            // 配置 MediaRecorder
-            mediaRecorder = MediaRecorder().apply {
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                MediaRecorder()
+            }.apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -114,155 +183,82 @@ class MainActivity : AppCompatActivity() {
                 start()
             }
 
-            isRecording = true
-            updateUI()
-            Toast.makeText(this, "开始录音", Toast.LENGTH_SHORT).show()
-
+            viewModel.startTimer()
+            startAmplitudePolling()
+            Toast.makeText(this, getString(R.string.recording), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "录音失败: ${e.message}", Toast.LENGTH_LONG).show()
-            resetRecorder()
+            Toast.makeText(this, getString(R.string.recording_failed), Toast.LENGTH_SHORT).show()
+            viewModel.stopTimer()
+        }
+    }
+
+    private fun startAmplitudePolling() {
+        amplitudeJob?.cancel()
+        amplitudeJob = lifecycleScope.launch {
+            while (isActive && viewModel.isRecording.value) {
+                mediaRecorder?.let {
+                    viewModel.updateAmplitude(it.maxAmplitude.toFloat())
+                }
+                delay(100)
+            }
         }
     }
 
     private fun stopRecording() {
-        if (!isRecording) return
-
         try {
+            amplitudeJob?.cancel()
             mediaRecorder?.apply {
                 stop()
                 release()
             }
             mediaRecorder = null
-            isRecording = false
-            
-            updateUI()
-            Toast.makeText(this, "录音已保存", Toast.LENGTH_SHORT).show()
-
+            viewModel.stopTimer()
+            Toast.makeText(this, getString(R.string.recording_saved), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "停止录音失败: ${e.message}", Toast.LENGTH_LONG).show()
-        } finally {
-            resetRecorder()
         }
     }
 
     private fun playRecording() {
-        if (outputFile.isEmpty() || !File(outputFile).exists()) {
-            Toast.makeText(this, "没有可播放的录音", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (isPlaying) {
+        if (viewModel.isPlaying.value) {
             stopPlaying()
             return
         }
 
-        try {
-            // 停止录音
-            if (isRecording) {
-                stopRecording()
-            }
+        if (outputFile.isEmpty() || !File(outputFile).exists()) return
 
+        try {
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(outputFile)
                 prepare()
                 start()
-                setOnCompletionListener {
-                    stopPlaying()
-                }
+                setOnCompletionListener { stopPlaying() }
             }
-
-            isPlaying = true
-            updateUI()
-            Toast.makeText(this, "开始播放", Toast.LENGTH_SHORT).show()
-
+            viewModel.setPlaying(true)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "播放失败: ${e.message}", Toast.LENGTH_LONG).show()
-            resetPlayer()
+            Toast.makeText(this, getString(R.string.play_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun stopPlaying() {
-        if (!isPlaying) return
-
         try {
             mediaPlayer?.apply {
-                if (isPlaying) {
-                    stop()
-                }
+                if (isPlaying) stop()
                 release()
             }
             mediaPlayer = null
-            isPlaying = false
-            updateUI()
-
+            viewModel.setPlaying(false)
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            resetPlayer()
-        }
-    }
-
-    private fun resetRecorder() {
-        mediaRecorder?.release()
-        mediaRecorder = null
-        isRecording = false
-        updateUI()
-    }
-
-    private fun resetPlayer() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        isPlaying = false
-        updateUI()
-    }
-
-    private fun updateUI() {
-        when {
-            isRecording -> {
-                tvStatus.text = "🔴 正在录音..."
-                tvStatus.setTextColor(getColor(android.R.color.holo_red_dark))
-                btnRecord.isEnabled = false
-                btnStop.isEnabled = true
-                btnPlay.isEnabled = false
-                btnRecord.text = "录音中"
-                btnStop.text = "⏹️ 停止"
-                btnPlay.text = "播放"
-            }
-            isPlaying -> {
-                tvStatus.text = "▶️ 正在播放..."
-                tvStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-                btnRecord.isEnabled = false
-                btnStop.isEnabled = true
-                btnPlay.isEnabled = true
-                btnRecord.text = "录音"
-                btnStop.text = "⏹️ 停止"
-                btnPlay.text = "暂停"
-            }
-            else -> {
-                tvStatus.text = "准备录音"
-                tvStatus.setTextColor(getColor(android.R.color.black))
-                btnRecord.isEnabled = true
-                btnStop.isEnabled = false
-                btnPlay.isEnabled = outputFile.isNotEmpty() && File(outputFile).exists()
-                btnRecord.text = "🔴 录音"
-                btnStop.text = "停止"
-                btnPlay.text = "▶️ 播放"
-            }
-        }
-
-        if (outputFile.isNotEmpty() && File(outputFile).exists()) {
-            tvFileInfo.text = "📁 最近文件: ${File(outputFile).name}"
-        } else {
-            tvFileInfo.text = "暂无录音文件"
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        resetRecorder()
-        resetPlayer()
+        amplitudeJob?.cancel()
+        mediaRecorder?.release()
+        mediaPlayer?.release()
     }
 }
