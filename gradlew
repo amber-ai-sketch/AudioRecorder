@@ -35,7 +35,9 @@ do
     ls=$( ls -ld "$app_path" )
     link=${ls#*' -> '}
     case $link in
-      /*)   app_path=$link ;;\n      *)    app_path=$APP_HOME$link ;;\n    esac
+      /*)   app_path=$link ;;
+      *)    app_path=$APP_HOME$link ;;
+    esac
 done
 
 APP_HOME=$( cd "${APP_HOME:-./}" && pwd -P ) || exit
@@ -65,10 +67,10 @@ cygwin=false
 msys=false
 darwin=false
 nonstop=false
-case "$( uname )" in                #(
-  CYGWIN* )         cygwin=true  ;;  #(
-  MSYS* | MINGW* )  msys=true    ;;  #(
-  DARWIN* )         darwin=true  ;;  #(
+case "$( uname )" in
+  CYGWIN* )         cygwin=true  ;;
+  MSYS* | MINGW* )  msys=true    ;;
+  DARWIN* )         darwin=true  ;;
   NONSTOP* )        nonstop=true ;;
 esac
 
@@ -99,10 +101,10 @@ fi
 
 # Increase the maximum file descriptors if we can.
 if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
-    case $MAX_FD in  #(
+    case $MAX_FD in
       max|maximum) MAX_FD=$( ulimit -H -n ) || warn "Could not query maximum file descriptor limit" ;;
     esac
-    case $MAX_FD in  #(
+    case $MAX_FD in
       '' | *[!0-9]*)  warn "Could not set maximum file descriptor limit: $MAX_FD" ;;
     *)
       ulimit -n $MAX_FD || warn "Could not set maximum file descriptor limit"
