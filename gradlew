@@ -108,6 +108,7 @@ if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
       '' | *[!0-9]*)  warn "Could not set maximum file descriptor limit: $MAX_FD" ;;
     *)
       ulimit -n $MAX_FD || warn "Could not set maximum file descriptor limit"
+      ;;
     esac
 fi
 
